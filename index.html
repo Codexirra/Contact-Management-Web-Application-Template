@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ContactFlow CRM</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  <script data-codexirra-inspector>(() => {
+  if (window.__codexirraInspectorInstalled) return;
+  window.__codexirraInspectorInstalled = true;
+  const defaultSourceFile = '/src/App.tsx';
+  let enabled = false;
+  const selector = [
+    '[data-component]',
+    '[data-codexirra-source]',
+    '.inspectable',
+    'button',
+    'a',
+    'input',
+    'textarea',
+    'select',
+    'h1',
+    'h2',
+    'h3',
+    'p',
+    'section',
+    'article'
+  ].join(',');
+
+  function metadataFor(el) {
+    const rect = el.getBoundingClientRect();
+    const hierarchy = Array.from(el.parentElement?.children || [])
+      .slice(0, 6)
+      .map((child) => child.tagName.toLowerCase())
+      .join(' > ');
+    return {
+      x: rect.left,
+      y: rect.top,
+      w: rect.width,
+      h: rect.height,
+      component: el.dataset.component || el.tagName.toLowerCase(),
+      sourceFile: el.dataset.codexirraSource || defaultSourceFile,
+      textContent: (el.textContent || '').trim().slice(0, 300),
+      cssClasses: typeof el.className === 'string' ? el.className : '',
+      hierarchy,
+      route: window.location.pathname || '/preview'
+    };
+  }
+
+  function inspectAt(clientX, clientY) {
+    const element = document.elementFromPoint(clientX, clientY);
+    const target = element?.closest?.(selector);
+    if (!target || target === document.body || target.id === 'root') return null;
+    return metadataFor(target);
+  }
+
+  let lastSent = 0;
+  window.addEventListener('message', (event) => {
+    if (event.data?.type === 'codexirra:inspector:set-enabled') {
+      enabled = Boolean(event.data.enabled);
+      if (!enabled) {
+        window.parent.postMessage({ type: 'codexirra:inspector:hover', box: null }, '*');
+      }
+    }
+  }, true);
+
+  window.addEventListener('mousemove', (event) => {
+    if (!enabled) return;
+    const now = Date.now();
+    if (now - lastSent < 40) return;
+    lastSent = now;
+    window.parent.postMessage({ type: 'codexirra:inspector:hover', box: inspectAt(event.clientX, event.clientY) }, '*');
+  }, true);
+
+  window.addEventListener('click', (event) => {
+    if (!enabled) return;
+    const box = inspectAt(event.clientX, event.clientY);
+    if (!box) return;
+    event.preventDefault();
+    event.stopPropagation();
+    window.parent.postMessage({ type: 'codexirra:inspector:select', box }, '*');
+  }, true);
+
+  window.addEventListener('mouseleave', () => {
+    if (!enabled) return;
+    window.parent.postMessage({ type: 'codexirra:inspector:hover', box: null }, '*');
+  }, true);
+})();</script></body>
+</html>
